@@ -1,25 +1,20 @@
 const board = document.getElementById("board")
-function createCustomElement(tag, {id = "",className = "",onClick = null}){
-    const element = document.createElement(tag)
-
-    if (id) element.id = id
-    if (className) element.className = className
-    if (onClick) element.onclick = onClick
-
-    return element
-}
 
 let surface = 20
 let bombs = 50
 let bombsPositions = []
+
+// adds tiles
 for(let i = 0; i < surface; i++){
     board.appendChild(createCustomElement("div",{id:`${i}`,className:"row",}))
     for(let j = 0; j < surface; j++){
-        document.getElementById(`${i}`).appendChild(createCustomElement("div",{id:`${i}-${j}`,className:"tile",onClick:mark}))
+        document.getElementById(`${i}`).appendChild(createCustomElement("div", { id:`${i}-${j}`, className:"tile", onClick: mark }))
     }   
 }
+
+// create random bombs
 function randomBombTile(){
-    let bombPosition =  [Math.floor( Math.random() * surface),Math.floor( Math.random() * surface)]
+    let bombPosition = [Math.floor(Math.random() * surface), Math.floor(Math.random() * surface)]
     const bomb = document.getElementById(`${bombPosition[0]}-${bombPosition[1]}`)
 
     if (bomb.classList.contains("red")) randomBombTile()
@@ -28,7 +23,7 @@ function randomBombTile(){
 for (let i = 0; i < bombs; i++){
     randomBombTile()
 }
-function mark(event){
+function mark(event) {
     const clickedElement = event.target
     if (clickedElement.classList.contains("red")) window.alert("you lose")
     if (!clickedElement.classList.contains("clicked")) clickedElement.classList.add("clicked") 
@@ -38,7 +33,10 @@ function mark(event){
     let tempTile = ""
     let reached = false
     for(let i = 0;i < clickedElement.id.length;i++ ){
-        if (clickedElement.id[i] === '-')   {reached = true; continue}
+        if (clickedElement.id[i] === '-') {
+            reached = true
+            continue
+        }
         reached ? tempTileRow += clickedElement.id[i] : tempTile += clickedElement.id[i]
     }
     let tile =  []
@@ -55,9 +53,18 @@ function mark(event){
     
     tileRow.forEach(element => {
         tile.forEach(delement => {
-            if (document.getElementById(`${delement}-${element}`).classList.contains("red"))surroundingBombs +=1
-        
+            if (document.getElementById(`${delement}-${element}`).classList.contains("red")) surroundingBombs +=1
         });
     });
-    clickedElement.innerText = surroundingBombs
+    clickedElement.innerText = surroundingBombs ? surroundingBombs : null
+}
+
+function createCustomElement(tag, { id = "", className = "", onClick = null }) {
+    const element = document.createElement(tag)
+
+    if (id) element.id = id
+    if (className) element.className = className
+    if (onClick) element.onclick = onClick
+
+    return element
 }

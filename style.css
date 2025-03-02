@@ -1,34 +1,51 @@
-*{
-    background-color: black;
+:root {
+    --main-background: rgb(0, 0, 0); 
+    --board-color:rgb(29, 29, 29);
+}
+
+* {
+    background-color: var(--main-background);
     margin: 0;
     padding: 0;
 }
-body{
+
+body {
     width: 100vw;
     height: 100vh;
 }
-#board{
-    background-color: rgb(27, 34, 34);
-    border: 1px solid rgb(59, 124, 177);
-    position: absolute;
-    margin: auto;
-    line-height: 0;
+
+#board-container {
     display: flex;
+    justify-content: center;
 }
-.tile{
+
+#board {
+    position: absolute;
+    display: flex;
+    line-height: 0;
+}
+
+.tile {
     background-color: rgb(75, 32, 32);
-    width:  25px;
+    width: 25px;
     height: 25px;
     margin: 2px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 100ms;
+    cursor: pointer;
 }
-.row{
+
+.row {
     width: 5%;
     display: block;
 }
-/* .red{
+
+.red {
     background-color: red;
-} */
- .clicked{
+}
+
+.clicked {
     background-color: rgb(0, 55, 117);
- }
+}
