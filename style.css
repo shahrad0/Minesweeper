@@ -42,9 +42,9 @@ body {
     display: block;
 }
 
-.red {
+/* .red {
     background-color: red;
-}
+} */
 
 .clicked {
     background-color: rgb(0, 55, 117);

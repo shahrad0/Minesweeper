@@ -1,7 +1,7 @@
 const board = document.getElementById("board")
 
 let surface = 20
-let bombs = 50
+let bombs = 40
 let bombsPositions = []
 
 // adds tiles
@@ -33,54 +33,73 @@ function mark(event) {
     if (clickedElement.classList.contains("red")) window.alert("you lose")
     if (!clickedElement.classList.contains("clicked")) clickedElement.classList.add("clicked") 
 
-    let horizontalTile = ""
-    let verticalTile = ""
+    let xTile = ""
+    let yTile = ""
     let reached = false
     for (let i = 0;i < clickedElement.id.length;i++ ) {
         if (clickedElement.id[i] === '-') {
             reached = true
             continue
         }
-        reached ? verticalTile += clickedElement.id[i] : horizontalTile += clickedElement.id[i]
+        reached ? yTile += clickedElement.id[i] : xTile += clickedElement.id[i]
     }
 
-    horizontalTile = parseInt(horizontalTile)
-    verticalTile = parseInt(verticalTile)
+    xTile = parseInt(xTile)
+    yTile = parseInt(yTile)
 
     let clickedPosition = { 
-        horizontal: horizontalTile,
-        vertical: verticalTile
+        x: xTile,
+        y: yTile
     }
 
-    console.log(clickedPosition)
     checkForBomb(clickedPosition, clickedElement)
 }
 
 function revealSurrounding(position) {
-    
+    let forCheckPositions = []
+
+    if (position.x === 0) forCheckPositions.push([position.x + 1, position.y])
+    else if (position.x === surface - 1) forCheckPositions.push([position.x - 1, position.y])
+    else forCheckPositions.push([position.x - 1, position.y], [ position.x + 1, position.y])  
+
+    if (position.y === 0) forCheckPositions.push([position.x, position.y + 1])
+    else if (position.y === surface - 1) forCheckPositions.push([position.x, position.y - 1])
+    else forCheckPositions.push([position.x, position.y - 1], [position.x, position.y + 1]) 
+
+    console.log(forCheckPositions)
+    setTimeout(() => {
+        forCheckPositions.forEach(position => {
+            if (!document.getElementById(`${position[0]}-${position[1]}`)?.classList.contains("clicked")) {
+                checkForBomb({ x: position[0], y: position[1] })
+                console.log(document.getElementById(`${position[0]}-${position[1]}`))
+            }
+        })
+    }, 50)
 }
 
-function checkForBomb({ horizontal, vertical }, clickedElement) {
-    let surroundingTiles = { horizontal, vertical }
+function checkForBomb({ x, y }) {
+    let clickedElement = document.getElementById(`${x}-${y}`)
+    let forCheckPositions = []
     let surroundingBombs = 0
- 
-    if (!horizontal === 0) surroundingTiles.horizontal = [horizontal, horizontal + 1]
-    else if (!horizontal === surface - 1) surroundingTiles.horizontal = [horizontal, horizontal - 1]
-    else surroundingTiles.horizontal = [horizontal, horizontal - 1, horizontal + 1]
 
-    if (vertical === 0) surroundingTiles.vertical = [vertical, vertical + 1]
-    else if (vertical === surface - 1) surroundingTiles.vertical = [vertical, vertical - 1]
-    else surroundingTiles.vertical = [vertical, vertical - 1, vertical + 1]
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (x + dx >= 0 && x + dx < surface && y + dy >= 0 && y + dy < surface) {
+                forCheckPositions.push({ x: x + dx, y: y + dy })
+            }
+        }
+    }
 
-    surroundingTiles.vertical.forEach(vertical => {
-        surroundingTiles.horizontal.forEach(horizontal => {
-            if (document.getElementById(`${horizontal}-${vertical}`).classList.contains("red")) surroundingBombs += 1
-        })
+    forCheckPositions.forEach(position => {
+        if (document.getElementById(`${position.x}-${position.y}`).classList.contains("red")) surroundingBombs += 1
     })
 
     if (surroundingBombs === 0) {
-        clickedElement.innerText = 0
-        revealSurrounding({ horizontal, vertical })
+        clickedElement.innerText = ""
+        if (!clickedElement.classList.contains("clicked")) {
+            clickedElement.classList.add("clicked")
+        }
+        revealSurrounding({ x, y })
     }
     else clickedElement.innerText = surroundingBombs
 }
