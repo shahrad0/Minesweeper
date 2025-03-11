@@ -1,14 +1,15 @@
 const board = document.getElementById("board")
 
-let surface = 20
-let bombs = 40
+let surface = 40
+let bombs = 300
 let bombsPositions = []
+let flaggedPosition = []
 
 // adds tiles
 for(let i = 0; i < surface; i++){
     board.appendChild(createCustomElement("div", { id: `${i}`, className: "row" }))
     for (let j = 0; j < surface; j++) {
-        document.getElementById(`${i}`).appendChild(createCustomElement("div", { id:`${i}-${j}`, className:"tile", onClick: mark }))
+        document.getElementById(`${i}`).appendChild(createCustomElement("div", { id:`${i}-${j}`, className:"tile" }))
     }
 }
 
@@ -28,50 +29,31 @@ for (let i = 0; i < bombs; i++){
     randomBombTile()
 }
 
-function mark(event) {
-    const clickedElement = event.target
+function mark(target) {
+    const clickedElement = target
+    if (clickedElement.classList.contains("flagged") || clickedElement.classList.contains("flag")) return
     if (clickedElement.classList.contains("red")) window.alert("you lose")
     if (!clickedElement.classList.contains("clicked")) clickedElement.classList.add("clicked") 
 
-    let xTile = ""
-    let yTile = ""
-    let reached = false
-    for (let i = 0;i < clickedElement.id.length;i++ ) {
-        if (clickedElement.id[i] === '-') {
-            reached = true
-            continue
-        }
-        reached ? yTile += clickedElement.id[i] : xTile += clickedElement.id[i]
-    }
-
-    xTile = parseInt(xTile)
-    yTile = parseInt(yTile)
+    let [ x, y ] = clickedElement.id.split("-")
+    x = parseInt(x)
+    y = parseInt(y)
 
     let clickedPosition = { 
-        x: xTile,
-        y: yTile
+        x: x,
+        y: y
     }
 
     checkForBomb(clickedPosition, clickedElement)
 }
 
 function revealSurrounding(position) {
-    let forCheckPositions = []
+    let forCheckPositions = getSurroundingTiles(position)
 
-    if (position.x === 0) forCheckPositions.push([position.x + 1, position.y])
-    else if (position.x === surface - 1) forCheckPositions.push([position.x - 1, position.y])
-    else forCheckPositions.push([position.x - 1, position.y], [ position.x + 1, position.y])  
-
-    if (position.y === 0) forCheckPositions.push([position.x, position.y + 1])
-    else if (position.y === surface - 1) forCheckPositions.push([position.x, position.y - 1])
-    else forCheckPositions.push([position.x, position.y - 1], [position.x, position.y + 1]) 
-
-    console.log(forCheckPositions)
     setTimeout(() => {
         forCheckPositions.forEach(position => {
-            if (!document.getElementById(`${position[0]}-${position[1]}`)?.classList.contains("clicked")) {
-                checkForBomb({ x: position[0], y: position[1] })
-                console.log(document.getElementById(`${position[0]}-${position[1]}`))
+            if (!document.getElementById(`${position.x}-${position.y}`)?.classList.contains("clicked")) {
+                checkForBomb({ x: position.x, y: position.y })
             }
         })
     }, 50)
@@ -79,16 +61,8 @@ function revealSurrounding(position) {
 
 function checkForBomb({ x, y }) {
     let clickedElement = document.getElementById(`${x}-${y}`)
-    let forCheckPositions = []
+    let forCheckPositions = getSurroundingTiles({ x, y })
     let surroundingBombs = 0
-
-    for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-            if (x + dx >= 0 && x + dx < surface && y + dy >= 0 && y + dy < surface) {
-                forCheckPositions.push({ x: x + dx, y: y + dy })
-            }
-        }
-    }
 
     forCheckPositions.forEach(position => {
         if (document.getElementById(`${position.x}-${position.y}`).classList.contains("red")) surroundingBombs += 1
@@ -96,20 +70,103 @@ function checkForBomb({ x, y }) {
 
     if (surroundingBombs === 0) {
         clickedElement.innerText = ""
-        if (!clickedElement.classList.contains("clicked")) {
-            clickedElement.classList.add("clicked")
-        }
+        if (!clickedElement.classList.contains("clicked")) clickedElement.classList.add("clicked")
+        
         revealSurrounding({ x, y })
     }
-    else clickedElement.innerText = surroundingBombs
+    else {
+        clickedElement.innerText = surroundingBombs
+        if (!clickedElement.classList.contains("clicked")) clickedElement.classList.add("clicked")
+    }
 }
 
-function createCustomElement(tag, { id = "", className = "", onClick = null }) {
+function createCustomElement(tag, { id = "", className = "" }) {
     const element = document.createElement(tag)
 
     if (id) element.id = id
     if (className) element.className = className
-    if (onClick) element.onclick = onClick
 
     return element
 }
+
+function flag(e) {
+    let targetedElement = e.target
+    if (targetedElement.classList.contains("clicked") || !targetedElement.classList.contains("tile")) {
+        if (targetedElement.classList.contains("flag")) removeFlag(targetedElement.parentNode)
+        return
+    }
+    else if (targetedElement.classList.contains("flagged")) {
+        removeFlag(targetedElement)
+        return
+    }
+    else targetedElement.classList.add("flagged")
+
+    let flag = createCustomElement("img", {
+        className: `flag`,
+        id: targetedElement.id
+    })
+
+    flag.src = "Assets/flag.png"
+    targetedElement.appendChild(flag)
+}
+
+function removeFlag(targetedElement) {
+    targetedElement.classList.remove("flagged")
+    targetedElement.querySelector("img").remove()
+}
+
+function getSurroundingTiles(position) {
+    let surroundingTiles = []
+
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (position.x + dx >= 0 && position.x + dx < surface && position.y + dy >= 0 && position.y + dy < surface && !(position.x + dx === position.x && position.y + dy === position.y)) {
+                surroundingTiles.push({ x: position.x + dx, y: position.y + dy })
+            }
+        }
+    }
+
+    return surroundingTiles
+}
+
+function doubleClickReveal(target) {
+    let [x, y] = target.id.split("-")
+    x = parseInt(x)
+    y = parseInt(y)
+
+    let surroundingTiles = getSurroundingTiles({ x, y })
+    let flaggedTile = 0
+    let unmarkedPosition = []
+    // this could be a problem 
+    let bombs = target.innerText
+
+    
+    surroundingTiles.forEach(element => {
+        if (document.getElementById(`${element.x}-${element.y}`).classList.contains("flagged")) { 
+            flaggedTile ++
+            return
+        }
+        if (!document.getElementById(`${element.x}-${element.y}`).classList.contains("clicked")) {
+            unmarkedPosition.push(element)
+        }
+    })
+
+    if (bombs == flaggedTile) {
+        unmarkedPosition.forEach(element => {
+            mark(document.getElementById(`${element.x}-${element.y}`))
+        })
+    }
+}
+
+document.addEventListener("contextmenu", (e) => {
+    e.preventDefault()
+    flag(e)
+})
+
+document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("tile")) mark(e.target)
+})
+
+document.addEventListener("dblclick", (e) => {
+    doubleClickReveal(e.target)
+})
