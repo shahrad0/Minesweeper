@@ -1,21 +1,79 @@
 const board = document.getElementById("board")
+const DifficultySelection = document.getElementById("difficulty")
+const xElement = document.getElementById("x")
+const yElement = document.getElementById("y")
+const bombsElement = document.getElementById("bombs")
 
-let surface = 40
-let bombs = 300
+let surface = { x, y }
+let bombs = 0
 let bombsPositions = []
 let flaggedPosition = []
+let Difficulty = {
+    easy: {
+        x: 10,
+        y: 10,
+        bombs: 10
+    },
+    medium: {
+        x: 15,
+        y: 15,
+        bombs: 50
+    },
+    hard: {
+        x: 20,
+        y: 20,
+        bombs: 100
+    },
+}
 
-// adds tiles
-for(let i = 0; i < surface; i++){
-    board.appendChild(createCustomElement("div", { id: `${i}`, className: "row" }))
-    for (let j = 0; j < surface; j++) {
-        document.getElementById(`${i}`).appendChild(createCustomElement("div", { id:`${i}-${j}`, className:"tile" }))
+DifficultySelection.addEventListener("change", (e) => {
+    if (e.target.value === "Custom") {
+        xElement.disabled = false
+        yElement.disabled = false
+        bombsElement.disabled = false
+        xElement.classList.remove("locked-input")
+        yElement.classList.remove("locked-input")
+        bombsElement.classList.remove("locked-input")
+        return
+    }
+
+    xElement.disabled = true
+    yElement.disabled = true
+    bombsElement.disabled = true
+    xElement.classList.add("locked-input")
+    yElement.classList.add("locked-input")
+    bombsElement.classList.add("locked-input")
+
+    let selectedDifficulty = Difficulty[e.target.value]
+    xElement.value = selectedDifficulty.x
+    yElement.value = selectedDifficulty.y
+    bombsElement.value = selectedDifficulty.bombs
+})
+
+function startGame() {
+    bombs = bombsElement.value
+    surface = { x: Number(xElement.value), y: Number(yElement.value) }
+    board.innerHTML = ""
+
+    // adds tiles
+    for (let y = 0; y < surface.y; y++){
+        board.appendChild(createCustomElement("div", { id: `${y}`, className: "row" }))
+        for (let x = 0; x < surface.x; x++) {
+            document.getElementById(`${y}`).appendChild(createCustomElement("div", { id: `${x}-${y}`, className:"tile" }))
+        }
+    }
+    // adds bombs
+    for (let i = 0; i < bombs; i++){
+        randomBombTile()
     }
 }
 
 // create random bombs
 function randomBombTile(){
-    let bombPosition = [Math.floor(Math.random() * surface), Math.floor(Math.random() * surface)]
+    let bombPosition = [
+        Math.floor(Math.random() * surface.x),
+        Math.floor(Math.random() * surface.y)
+    ]
     const bomb = document.getElementById(`${bombPosition[0]}-${bombPosition[1]}`)
 
     if (bomb.classList.contains("red")) randomBombTile()
@@ -25,26 +83,15 @@ function randomBombTile(){
     }
 }
 
-for (let i = 0; i < bombs; i++){
-    randomBombTile()
-}
-
 function mark(target) {
     const clickedElement = target
     if (clickedElement.classList.contains("flagged") || clickedElement.classList.contains("flag")) return
     if (clickedElement.classList.contains("red")) window.alert("you lose")
     if (!clickedElement.classList.contains("clicked")) clickedElement.classList.add("clicked") 
 
-    let [ x, y ] = clickedElement.id.split("-")
-    x = parseInt(x)
-    y = parseInt(y)
+    let [x, y] = clickedElement.id.split("-").map(Number)
 
-    let clickedPosition = { 
-        x: x,
-        y: y
-    }
-
-    checkForBomb(clickedPosition, clickedElement)
+    checkForBomb({x: x, y: y})
 }
 
 function revealSurrounding(position) {
@@ -120,7 +167,13 @@ function getSurroundingTiles(position) {
 
     for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
-            if (position.x + dx >= 0 && position.x + dx < surface && position.y + dy >= 0 && position.y + dy < surface && !(position.x + dx === position.x && position.y + dy === position.y)) {
+            if (
+                position.x + dx >= 0 &&
+                position.x + dx < surface.x &&
+                position.y + dy >= 0 &&
+                position.y + dy < surface.y &&
+                !(dx === 0 && dy === 0)
+            ) {
                 surroundingTiles.push({ x: position.x + dx, y: position.y + dy })
             }
         }
@@ -130,11 +183,10 @@ function getSurroundingTiles(position) {
 }
 
 function doubleClickReveal(target) {
-    let [x, y] = target.id.split("-")
-    x = parseInt(x)
-    y = parseInt(y)
+    let [x, y] = target.id.split("-").map(Number)
 
-    let surroundingTiles = getSurroundingTiles({ x, y })
+    let clickedPosition = { x, y }
+    let surroundingTiles = getSurroundingTiles(clickedPosition)
     let flaggedTile = 0
     let unmarkedPosition = []
     // this could be a problem 

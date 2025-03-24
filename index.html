@@ -7,6 +7,35 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <form id="menu">
+        <div class="input-container">
+            <label for="difficulty" class="label-style">Difficulty: </label>
+            <select name="difficulty" id="difficulty" class="input-style">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+                <option value="Custom">Custom</option>
+            </select>
+        </div>
+
+        <div class="input-container">
+            <label for="x" class="label-style">X: </label>
+            <input type="number" id ="x" name="x" class="input-style">
+        </div>
+       
+        <div class="input-container">
+            <label for="y" class="label-style">Y: </label>
+            <input type="number" id ="y" name="y" class="input-style">
+        </div>
+
+        <div class="input-container">
+            <label for="bombs" class="label-style">Bombs: </label>
+            <input type="number" id ="bombs" name="bombs" class="input-style">
+        </div>
+
+        <button id="start" type="button" onclick="startGame()">Start</button>
+    </form>
+
     <div id="board-container">
         <div id="board"></div>
     </div>
