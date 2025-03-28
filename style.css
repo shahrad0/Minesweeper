@@ -18,6 +18,7 @@
 body {
     width: 100vw;
     height: 100vh;
+    overflow: hidden;
 }
 
 button, select, input {
@@ -29,7 +30,7 @@ button, select, input {
 
 #menu {
     color: var(--color);
-    margin: 7vh 30vw;
+    margin: 9.5vh 30vw 10.5vh 30vw;
     height: 80vh;
     width: 20vw;
     border: 1px solid var(--border-color);
@@ -39,6 +40,7 @@ button, select, input {
     flex-wrap: wrap;
     justify-content: center;
     padding: 0 10%;
+    transition: transform 300ms;
 }
 
 .input-container {
@@ -54,7 +56,7 @@ button, select, input {
     width: calc(90% - 100px);
     padding: 5%;
     box-sizing: border-box;
-    transition: all 300ms;
+    transition: all 300ms ease-in;
 }
 
 .input-style:focus {
@@ -73,9 +75,12 @@ button, select, input {
     width: 100px !important;
 }
 
-#board-container {
+#game-container {
+    width: 100vw;
+    height: 100vh;
     display: flex;
     justify-content: center;
+    transition: transform 300ms ease-in;
 }
 
 #board {
@@ -86,7 +91,8 @@ button, select, input {
 #start {
     border: 1px solid var(--border-color);
     border-radius: 15px;
-    padding: 1% 5%;
+    height: 50px;
+    padding: 0 5%;
     margin-bottom: 10%;
 }
 .tile {

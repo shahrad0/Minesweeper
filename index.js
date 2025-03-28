@@ -1,8 +1,13 @@
-const board = document.getElementById("board")
-const DifficultySelection = document.getElementById("difficulty")
+// menu elements
+const menu = document.getElementById("menu")
+const difficultySelection = document.getElementById("difficulty")
 const xElement = document.getElementById("x")
 const yElement = document.getElementById("y")
 const bombsElement = document.getElementById("bombs")
+
+// game elements
+const board = document.getElementById("board")
+const gameContainer = document.getElementById("game-container")
 
 let surface = { x, y }
 let bombs = 0
@@ -26,8 +31,10 @@ let Difficulty = {
     },
 }
 
-DifficultySelection.addEventListener("change", (e) => {
-    if (e.target.value === "Custom") {
+setDifficulty()
+
+function setDifficulty() {
+    if (difficultySelection.value === "Custom") {
         xElement.disabled = false
         yElement.disabled = false
         bombsElement.disabled = false
@@ -44,11 +51,13 @@ DifficultySelection.addEventListener("change", (e) => {
     yElement.classList.add("locked-input")
     bombsElement.classList.add("locked-input")
 
-    let selectedDifficulty = Difficulty[e.target.value]
+    let selectedDifficulty = Difficulty[difficultySelection.value]
     xElement.value = selectedDifficulty.x
     yElement.value = selectedDifficulty.y
     bombsElement.value = selectedDifficulty.bombs
-})
+}
+
+difficultySelection.addEventListener("change", () => setDifficulty())
 
 function startGame() {
     bombs = bombsElement.value
@@ -66,6 +75,15 @@ function startGame() {
     for (let i = 0; i < bombs; i++){
         randomBombTile()
     }
+
+    menu.style.transform = "translateY(-100vh)"
+    gameContainer.style.transform = `translateY(-100vh)`
+
+    setTimeout(() => {
+        gameContainer.style.transition = 'none'
+        menu.style.transition = 'none'
+    }
+    , 300)
 }
 
 // create random bombs
