@@ -2,9 +2,11 @@
     --main-background: rgb(0, 0, 0); 
     --board-color:rgb(29, 29, 29);
 
-    --border-color: rgb(0, 255, 117);
+    --secondary-color: rgb(0, 255, 117);
     --color: rgb(182, 182, 182);
 
+    --game-info-height: 80px;
+    --board-margin: 20px;
 }
 
 * {
@@ -23,7 +25,7 @@ body {
 
 button, select, input {
     color: var(--color);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--secondary-color);
     font-size: 20px;
     cursor: pointer;
 }
@@ -33,14 +35,13 @@ button, select, input {
     margin: 9.5vh 30vw 10.5vh 30vw;
     height: 80vh;
     width: 20vw;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--secondary-color);
     border-radius: 30px;
-    box-shadow: 0 0 25px var(--border-color);
+    box-shadow: 0 0 25px var(--secondary-color);
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     padding: 0 10%;
-    transition: transform 300ms;
 }
 
 .input-container {
@@ -56,12 +57,12 @@ button, select, input {
     width: calc(90% - 100px);
     padding: 5%;
     box-sizing: border-box;
-    transition: all 300ms ease-in;
+    transition: all 100ms ease-in;
 }
 
 .input-style:focus {
     outline: none;
-    box-shadow: 0 0 10px var(--border-color);
+    box-shadow: 0 0 10px var(--secondary-color);
 }
 
 .locked-input {
@@ -78,23 +79,39 @@ button, select, input {
 #game-container {
     width: 100vw;
     height: 100vh;
-    display: flex;
-    justify-content: center;
-    transition: transform 300ms ease-in;
-}
-
-#board {
-    position: absolute;
-    display: flex;
 }
 
 #start {
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--secondary-color);
     border-radius: 15px;
     height: 50px;
     padding: 0 5%;
     margin-bottom: 10%;
 }
+
+#game-info {
+    position: relative;
+    width: 100%;
+    height: var(--game-info-height);
+    padding-top: 10px;
+    color: var(--color);
+    overflow: hidden;
+}
+
+#board-container {
+    width: 100%;
+    height: calc(100vh - var(--game-info-height) - (var(--board-margin) * 2));
+    margin: var(--board-margin) 0;
+    overflow: scroll;
+}
+
+#board {
+    padding: 0 var(--board-margin);
+    overflow: visible;
+    margin: 0 auto;
+    width: fit-content;
+}
+
 .tile {
     background-color: rgb(49, 49, 49);
     width:  35px;
@@ -114,7 +131,7 @@ button, select, input {
 }
 
 .row {
-    display: block;
+    display: flex;
 }
 
 .clicked {
@@ -125,3 +142,62 @@ button, select, input {
     width: 80%;
     background-color: transparent;
 }
+
+/* clock segment */
+
+#timer {
+    display: flex;
+    gap: 4%;
+    height: 80px;
+    width: 20%;
+    position: absolute;
+    right: 0;
+}
+
+.digit {
+    aspect-ratio: 10 / 18;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: relative;
+}
+
+.segment {
+    border-radius: 100px;
+    background-color: #333;
+    position: absolute;
+}
+
+.segment.on {
+    background-color: var(--secondary-color);
+}
+
+.top, .middle, .bottom {
+    width: 60%;
+    height: 11%;
+    left: 20%;
+}
+
+.top { top: 0; }
+.middle { top: 44%; }
+.bottom { bottom: 0; }
+
+.top-left, .bottom-left, .top-right, .bottom-right {
+    width: 20%;
+    height: 44%;
+}
+
+.top-left { top: 5%; left: 0; }
+.bottom-left { bottom: 5%; left: 0; }
+.top-right { top: 5%; right: 0; }
+.bottom-right { bottom: 5%; right: 0; }
+
+.colon {
+    font-size: 3.5em;
+    color: #00ff00;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* clock segment */

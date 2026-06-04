@@ -36,8 +36,24 @@
         <button id="start" type="button" onclick="startGame()">Start</button>
     </form>
 
-    <div id="game-container">
-        <div id="board"></div>
+    <div id="game-container">        
+        <div id="game-info">
+            <span id="timer">
+                <div class="digit" id="minuteTens"></div>
+                <div class="digit" id="minuteOnes"></div>
+                <div class="colon">:</div>
+                <div class="digit" id="secondTens"></div>
+                <div class="digit" id="secondOnes"></div>
+            </span>
+            <span id="flags-left">0</span>
+            
+            <button id="reset" onclick="resetGame()">⟳</button>
+            <button id="back-to-menu" onclick="backToMenu()">←</button>
+        </div>
+
+        <div id="board-container">
+            <div id="board"></div>
+        </div>
     </div>
     <script src="index.js"></script>
 </body>
