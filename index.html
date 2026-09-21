@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Minesweeper</title>
+    <link rel="icon" href="Assets/bomb.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,6 +32,12 @@
         <div class="input-container">
             <label for="bombs" class="label-style">Bombs: </label>
             <input type="number" id ="bombs" name="bombs" class="input-style">
+        </div>
+
+        <div id="bomb-density-container" class="input-container">
+            <div class="label-style">Bomb Density: </div>
+            <span id="bomb-density"></span>
+            <button type="button" id="bomb-density-info-button" onclick="showDifficultyScale()">i</button>
         </div>
 
         <button id="start" type="button" onclick="startGame()">Start</button>
