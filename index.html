@@ -40,6 +40,8 @@
             <button type="button" id="bomb-density-info-button" onclick="showDifficultyScale()">i</button>
         </div>
 
+        <div id="board-error"></div>
+
         <button id="start" type="button" onclick="startGame()">Start</button>
     </form>
 
@@ -52,10 +54,10 @@
                 <div class="digit" id="secondTens"></div>
                 <div class="digit" id="secondOnes"></div>
             </span>
-            <span id="flags-left">0</span>
+            <button class="game-info-button" id="back-to-menu-button" onclick="backToMenu()">←</button>
+            <div id="flag-counter-container"></div>
             
-            <button id="reset" onclick="resetGame()">⟳</button>
-            <button id="back-to-menu" onclick="backToMenu()">←</button>
+            <button class="game-info-button" id="reset" onclick="resetGame()">⟳</button>
         </div>
 
         <div id="board-container">

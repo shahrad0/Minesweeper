@@ -1,13 +1,11 @@
 // Hard coded rules: 
 // 1. The area that player clicks on at the beginning will always have a 3x3 radius with no bomb.
-// 2. In custom mode, bomb density cannot be higher than 60 70%. (not implemented yet)
+// 2. In custom mode, bomb density cannot be higher than 50%. (not implemented yet)
 
-// other ideas: add more shapes
-
-// 70% slop free
+// 77.5% slop free
 
 // bomb position array directions -> from top to bottom, left to right. first element is x, second is y.
-// to do: bomb asset. fix timer. add lose and win menu. add the bomb density limit + board limit. also there might be some unknown bugs idk
+// to do: maybe add more shapes. also there might be some unknown bugs idk
 
 // menu elements
 const menu = document.getElementById("menu")
@@ -15,10 +13,12 @@ const difficultySelection = document.getElementById("difficulty")
 const xElement = document.getElementById("x")
 const yElement = document.getElementById("y")
 const bombsElement = document.getElementById("bombs")
+const boardErrorElement = document.getElementById("board-error")
 
 // game elements
 const board = document.getElementById("board")
 const gameContainer = document.getElementById("game-container")
+const flagCounterContainer = document.getElementById("flag-counter-container")
 
 const bombImageElement = createCustomElement("img", { className : "board-asset" })
 bombImageElement.src = "Assets/bomb.png"
@@ -30,7 +30,17 @@ let boardInfo = {
     x: undefined,
     y: undefined,
     bombCount: undefined,
-    bombDensity: undefined
+    bombDensity: undefined,
+    bombCountDigit: undefined,
+    digitElements: []
+}
+
+const boardLimits = {
+    maxBombDensity: 50,
+    maxX: 1000,
+    maxY: 1000,
+    minX: 6,
+    minY: 6
 }
 
 let gameState = {
@@ -42,7 +52,8 @@ let gameState = {
     bombsPositions: [],
     flaggedPosition: [],
     correctFlags: 0,
-    falseFlags: 0
+    falseFlags: 0,
+    boardRulesFollowed: undefined
 }
 
 const difficultyPresets = {
@@ -90,6 +101,57 @@ function UpdateBombDensity() {
     
     bombDensityElement.style.color = difficultyColors[difficulty]
     bombDensityElement.innerText = boardInfo.bombDensity + "%"
+}
+
+// DO THIS
+function checkBoardLimits(x, y, bombDensity) {
+    gameState.boardRulesFollowed = false
+
+    if (x >= boardLimits.maxX) {
+        boardErrorElement.innerText = "X cannot be bigger than " + boardLimits.maxX
+        addErrorEffects()
+    }
+    else if (y >= boardLimits.maxY) {
+        boardErrorElement.innerText = "Y cannot be bigger than " + boardLimits.maxY
+        addErrorEffects()
+    }
+    else if (bombDensity >= boardLimits.maxBombDensity) {
+        boardErrorElement.innerText = "bomb density cannot be higher than " + boardLimits.maxBombDensity + "%"
+        addErrorEffects()
+    }
+    else if (x <= boardLimits.minX) {
+        boardErrorElement.innerText = "X cannot be lower than " + boardLimits.minX
+        addErrorEffects()
+    }
+    else if (y <= boardLimits.minY) {
+        boardErrorElement.innerText = "Y cannot be lower than " + boardLimits.minY
+        addErrorEffects()
+    }
+    else gameState.boardRulesFollowed = true
+}
+
+function addErrorEffects() {
+    if (document.getElementById("error-timer-parent")) return
+
+    const delay = 7500
+    const parentBar = createCustomElement("div", { id: "error-timer-parent" })
+    const bar = createCustomElement("div", { id: "error-timer" })
+    bar.style.transition = `width ${delay - 100}ms ease-out `
+
+    parentBar.appendChild(bar)
+    boardErrorElement.appendChild(parentBar)
+
+    setTimeout(() => bar.style.width = "0px", 100)
+    setTimeout(() => {
+        boardErrorElement.style.opacity = 0
+        
+        setTimeout(() => {
+            boardErrorElement.innerText = null
+            parentBar.remove()
+            bar.remove()
+            boardErrorElement.style.opacity = 1
+        }, 300)
+    }, delay)
 }
 
 function bombDensityScale(bombDensity) {
@@ -171,33 +233,39 @@ function setDifficulty() {
 difficultySelection.addEventListener("change", () => setDifficulty())
 
 function boardLogic() {
-    setBoardInfo()
     board.innerHTML = ""
 
     // adds tiles
-    const fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment()
 
     for (let x = 0; x < boardInfo.x; x++) {
         const row = createCustomElement("div", {
             id: x,
             className: "row"
-        });
+        })
 
         for (let y = 0; y < boardInfo.y; y++) {
             row.appendChild(createCustomElement("div", {
                 id: `${x}-${y}`,
                 className: "tile"
-            }));
+            }))
         }
 
-        fragment.appendChild(row);
+        fragment.appendChild(row)
     }
 
-    board.appendChild(fragment);
+    board.appendChild(fragment)
 }
 
 function startGame() {
+    setBoardInfo()
+
+    checkBoardLimits(boardInfo.x, boardInfo.y, boardInfo.bombDensity)
+    if (!gameState.boardRulesFollowed) return
+
     boardLogic()
+    setFlagCounter()
+    setClockToZero()
 
     menu.style.transition = '300ms'
     gameContainer.style.transition = '300ms'
@@ -223,6 +291,9 @@ function resetGameInfo() {
     gameState.falseFlags = 0
 
     if (document.getElementById("result-menu")) document.getElementById("result-menu").remove()
+
+    setClockToZero()
+    updateFlagCounter()
 }
 
 function resetGame() {
@@ -232,24 +303,34 @@ function resetGame() {
 
 // create random bombs
 function addBombs(x, y){
-    let bombPosition = [
-        Math.floor(Math.random() * boardInfo.x),
-        Math.floor(Math.random() * boardInfo.y)
-    ]
+    const bombPositions = new Set()
 
-    if (x == bombPosition[0] && y == bombPosition[1]) return addBombs(x, y)
+    const surroundingTiles = getSurroundingTiles(x, y)
 
-    let surroundingTiles = getSurroundingTiles(x, y)
+    while (gameState.bombsPositions.length < boardInfo.bombCount) {
+        const bombX = Math.floor(Math.random() * boardInfo.x)
+        const bombY = Math.floor(Math.random() * boardInfo.y)
 
-    for (let i = 0; i < surroundingTiles.length; i++) {
-        if (surroundingTiles[i][0] == bombPosition[0] && surroundingTiles[i][1] == bombPosition[1]) return addBombs(x, y)
+        const key = bombX * boardInfo.y + bombY
+
+        if (bombPositions.has(key)) continue
+        if (x == bombX && y == bombY) continue
+
+        let isSurrounding = false
+
+        for (let i = 0; i < surroundingTiles.length; i++) {
+            if (surroundingTiles[i][0] == bombX &&
+                surroundingTiles[i][1] == bombY) {
+                isSurrounding = true
+                break
+            }
+        }
+
+        if (isSurrounding) continue
+
+        bombPositions.add(key)
+        gameState.bombsPositions.push([bombX, bombY])
     }
-
-    for (let i = 0; i < gameState.bombsPositions.length; i++) {
-        if (gameState.bombsPositions[i][0] == bombPosition[0] && gameState.bombsPositions[i][1] == bombPosition[1]) return addBombs(x, y)
-    }
-
-    gameState.bombsPositions.push(bombPosition)
 }
 
 function mark(target) {
@@ -259,7 +340,7 @@ function mark(target) {
     let [x, y] = getTilePosition(target)
 
     if (gameState.isFirstClick) {
-        for (let i = 0; i < boardInfo.bombCount; i++) addBombs(x, y)
+        addBombs(x, y)
         gameState.startTime = Date.now()
     } 
     gameState.isFirstClick = false
@@ -280,6 +361,48 @@ function mark(target) {
     revealSurrounding(x, y)
 
     if (gameState.clickedTiles == (boardInfo.x * boardInfo.y) - boardInfo.bombCount) winMenu()
+}
+
+// handling flag counter
+function setFlagCounter() {
+    boardInfo.bombCountDigit = 0
+    let temp = boardInfo.bombCount
+
+    // getting bombCount length and adding segments
+    while (temp >= 1) {
+        temp /= 10
+        boardInfo.bombCountDigit++
+
+        // adding digits and putting the length as each segments' id 
+        const digitContainer = createCustomElement("div", { id: "d" + boardInfo.bombCountDigit, className: "digit"})
+
+        createSegments(digitContainer)
+
+        boardInfo.digitElements.push(digitContainer)
+        flagCounterContainer.appendChild(digitContainer)
+    }
+
+    const flagImg = createCustomElement("img", { id: "flag" })
+    flagImg.src = "Assets/flag.png"
+
+    flagCounterContainer.appendChild(flagImg)
+
+    updateFlagCounter()
+}
+
+function getSpecificDigit(number, position, length) {
+    return Math.floor(number / 10**(length - position)) % 10
+}
+
+function updateFlagCounter() {
+    let digit = boardInfo.bombCountDigit
+    while (digit >= 1) {
+        const currentDigit = boardInfo.digitElements[digit - 1]
+
+        updateDigit(currentDigit, getSpecificDigit(boardInfo.bombCount - gameState.flaggedPosition.length, digit, boardInfo.bombCountDigit))
+
+        digit--
+    }
 }
 
 function lose(x, y) {
@@ -347,11 +470,14 @@ function revealSurroundingAnimation(x, y) {
                 revealSurrounding(position[0], position[1])
             }
         })
-    }, 50)
+    }, 40)
 }
 
 function revealSurrounding(x, y) {
     let clickedElement = document.getElementById(`${x}-${y}`)
+
+    if (clickedElement.classList.contains("flagged")) return
+
     let forCheckPositions = getSurroundingTiles(x, y)
     let surroundingBombs = 0
 
@@ -373,6 +499,7 @@ function revealSurrounding(x, y) {
         if (!clickedElement.classList.contains("clicked")) {
             clickedElement.classList.add("clicked")
             gameState.clickedTiles++
+            if (gameState.clickedTiles == (boardInfo.x * boardInfo.y) - boardInfo.bombCount) winMenu()
         }
     }
 }
@@ -423,8 +550,12 @@ function flag(e) {
     if (targetedElement.classList.contains("flagged")) {
         removeFlag(targetedElement)
         gameState.flaggedPosition = removeArrayElement(gameState.flaggedPosition, position)
+        updateFlagCounter()
+
         return
     }
+
+    if (boardInfo.bombCount - gameState.flaggedPosition.length <= 0) return
 
     targetedElement.classList.add("flagged")
     gameState.flaggedPosition.push(position)
@@ -436,6 +567,7 @@ function flag(e) {
 
     flag.src = "Assets/flag.png"
     targetedElement.appendChild(flag)
+    updateFlagCounter()
 }
 
 function removeFlag(targetedElement) {
@@ -493,12 +625,16 @@ function backToMenu() {
 
     resetGameInfo()
 
+    boardInfo.digitElements = []
+
     menu.style.transform = "translateY(0vh)"
     gameContainer.style.transform = `translateY(0vh)`
 
     setTimeout(() => {
         menu.style.transition = 'none'
         gameContainer.style.transition = 'none'
+        board.innerHTML = null
+        flagCounterContainer.innerHTML = null
     }, 300)
 }
 
@@ -630,7 +766,6 @@ function resultMenu(winOrLose) {
 
     menu.appendChild(buttonContainer)
 
-
     return menu
 }
 
@@ -671,6 +806,13 @@ function createSegments(parent) {
 }
 
 document.querySelectorAll('.digit').forEach(createSegments)
+
+function setClockToZero() {
+    updateDigit(document.getElementById('minuteTens'), 0)
+    updateDigit(document.getElementById('minuteOnes'), 0)
+    updateDigit(document.getElementById('secondTens'), 0)
+    updateDigit(document.getElementById('secondOnes'), 0)
+}
 
 function updateDigit(digitElement, number) {
     const segments = digitElement.querySelectorAll('.segment')

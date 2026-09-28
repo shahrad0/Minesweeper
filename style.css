@@ -23,6 +23,7 @@ body {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    padding: 10vh 0;
 }
 
 button, select, input {
@@ -34,8 +35,8 @@ button, select, input {
 
 #menu {
     color: var(--color);
-    margin: 9.5vh 30vw 10.5vh 30vw;
-    height: 80vh;
+    margin: 0 30vw 10vh 30vw;
+    height: calc(80vh - 60px);
     width: 20vw;
     border: 1px solid var(--secondary-color);
     border-radius: 30px;
@@ -43,14 +44,14 @@ button, select, input {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    padding: 0 10%;
-    /* color:; */
+    padding: 30px 10%;
+    /* overflow-y: ; */
 }
 
 .input-container {
     display: flex;
-    margin-top: 5%;
-    height: 10%;
+    margin-bottom: 10px;
+    height: 40px;
     align-items: center;
     width: 100%;
     position: relative;
@@ -74,6 +75,25 @@ button, select, input {
     bottom: 130%;
     right: 10%;
     width: max-content;
+}
+
+#board-error {
+    color: red;
+    transition: all 300ms;
+}
+
+#error-timer-parent {
+    background-color: brown;
+    position: relative;
+    width: 100%;
+    height: 3px;
+}
+
+#error-timer {
+    background-color: rgb(255, 65, 65);
+    position: absolute;
+    width: 100%;
+    height: 3px;
 }
 
 #close-menu-button {
@@ -128,6 +148,21 @@ button, select, input {
     position: absolute;
     right: 2%;
 }
+
+.game-info-button {
+    padding-bottom: 5px;
+    font-size: 30px;
+    border-radius: 9px;
+    width: 40px;
+    height: 40px;
+    margin-top: 20px;
+}
+
+#reset {
+    margin-left: 20px; 
+    text-box: alphabetic;
+}
+
 #back-to-menu-button {
     padding-bottom: 5px;
     font-size: 30px;
@@ -139,7 +174,7 @@ button, select, input {
 .input-style {
     border-radius: 15px;
     width: calc(90% - 100px);
-    padding: 5%;
+    padding: 8px 15px;
     box-sizing: border-box;
     transition: all 100ms ease-in;
 }
@@ -169,17 +204,38 @@ button, select, input {
     border: 1px solid var(--secondary-color);
     border-radius: 15px;
     height: 50px;
-    padding: 0 5%;
-    margin-bottom: 10%;
+    padding: 0 15px;
 }
 
 #game-info {
     position: relative;
-    width: 100%;
+    display: flex;
+    width: calc(100% - 40px);
     height: var(--game-info-height);
-    padding-top: 10px;
+    padding: 10px 20px 0 20px;
     color: var(--color);
     overflow: hidden;
+}
+
+#flag {
+    height: 50px;
+    margin-top: 5px;
+}
+
+#flag-counter-container {
+    position: absolute;
+    right: 232px;
+    border: 1px solid var(--secondary-color);
+    height: 60px;
+    width: fit-content;
+    padding: 9px 15px;
+    display: flex;
+    gap: 10px;
+}
+
+#flag-counter {
+    font-size: 63px;
+    margin-left: 10px;
 }
 
 #board-container {
@@ -234,11 +290,13 @@ button, select, input {
 
 #timer {
     display: flex;
-    gap: 4%;
-    height: 80px;
-    width: 20%;
+    gap: 8px;
+    height: 60px;
+    width: 180px;
     position: absolute;
-    right: 0;
+    right: 20px;
+    border: 1px solid var(--secondary-color);
+    padding: 9px 15px;
 }
 
 .digit {
