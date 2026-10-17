@@ -7,12 +7,18 @@
 // bomb position array directions -> from top to bottom, left to right. first element is x, second is y.
 // to do: maybe add more shapes. also there might be some unknown bugs idk
 
+// to optimize maybe: use ints instead of strings for valid tiles
+// other parts that could be optimized will be marked with "o**"
+
 // menu elements
 const menu = document.getElementById("menu")
 const difficultySelection = document.getElementById("difficulty")
 const xElement = document.getElementById("x")
 const yElement = document.getElementById("y")
+const rxElement = document.getElementById("rx")
+const ryElement = document.getElementById("ry")
 const bombsElement = document.getElementById("bombs")
+const tileCountElement = document.getElementById("tile-count")
 const boardErrorElement = document.getElementById("board-error")
 
 // game elements
@@ -25,14 +31,20 @@ bombImageElement.src = "Assets/bomb.png"
 
 const redFlagElement = createCustomElement("img", { className : "board-asset red-flag" })
 redFlagElement.src = "Assets/flag_correct.png"
+
+const emptyTile = createCustomElement("div", { className: "empty-tile" })
  
 let boardInfo = {
     x: undefined,
     y: undefined,
     bombCount: undefined,
+    tileCount: undefined,
     bombDensity: undefined,
     bombCountDigit: undefined,
-    digitElements: []
+    digitElements: [],
+    isCircle: false,
+    rx: undefined,
+    ry: undefined
 }
 
 const boardLimits = {
@@ -40,7 +52,13 @@ const boardLimits = {
     maxX: 1000,
     maxY: 1000,
     minX: 6,
-    minY: 6
+    minY: 6,
+
+    // circle limits
+    minRX: 6,
+    minRY: 6,
+    maxRX: 500, 
+    maxRY: 500
 }
 
 let gameState = {
@@ -49,6 +67,7 @@ let gameState = {
     finishTime: undefined,
     clickedTiles: 0,
     isFirstClick: true,
+    validTiles: new Set(),
     bombsPositions: [],
     flaggedPosition: [],
     correctFlags: 0,
@@ -88,8 +107,14 @@ menu.addEventListener("input", e => {
 function setBoardInfo() {
     boardInfo.x = Number(document.getElementById("x").value)
     boardInfo.y = Number(document.getElementById("y").value)
+    boardInfo.rx = Number(document.getElementById("rx").value)
+    boardInfo.ry = Number(document.getElementById("ry").value)
     boardInfo.bombCount = Number(document.getElementById("bombs").value)
-    boardInfo.bombDensity = Math.round((boardInfo.bombCount / (boardInfo.x * boardInfo.y)) * 10000) / 100
+
+    if (boardInfo.isCircle) getTileCount(1)
+    else getTileCount(0)
+
+    boardInfo.bombDensity = Math.round((boardInfo.bombCount / boardInfo.tileCount) * 10000) / 100
 }
 
 function UpdateBombDensity() {
@@ -103,30 +128,51 @@ function UpdateBombDensity() {
     bombDensityElement.innerText = boardInfo.bombDensity + "%"
 }
 
-// DO THIS
-function checkBoardLimits(x, y, bombDensity) {
+function checkBoardLimits({ x, y, bombDensity, rx, ry } = {}) {
     gameState.boardRulesFollowed = false
 
-    if (x >= boardLimits.maxX) {
-        boardErrorElement.innerText = "X cannot be bigger than " + boardLimits.maxX
-        addErrorEffects()
+    if (boardInfo.isCircle) {
+        if (rx > boardLimits.maxRX) {
+            boardErrorElement.innerText = "Radius X cannot be bigger than " + boardLimits.maxX
+            addErrorEffects()
+        }
+        else if (ry > boardLimits.maxRY) {
+            boardErrorElement.innerText = "Radius Y cannot be bigger than " + boardLimits.maxY
+            addErrorEffects()
+        }
+        else if (rx < boardLimits.minRX) {
+            boardErrorElement.innerText = "Radius X cannot be lower than " + boardLimits.minRX
+            addErrorEffects()
+        }
+        else if (ry < boardLimits.minRY) {
+            boardErrorElement.innerText = "Radius Y cannot be lower than " + boardLimits.minRY
+            addErrorEffects()
+        }
     }
-    else if (y >= boardLimits.maxY) {
-        boardErrorElement.innerText = "Y cannot be bigger than " + boardLimits.maxY
-        addErrorEffects()
+    else {
+        if (x > boardLimits.maxX) {
+            boardErrorElement.innerText = "X cannot be bigger than " + boardLimits.maxX
+            addErrorEffects()
+        }
+        else if (y > boardLimits.maxY) {
+            boardErrorElement.innerText = "Y cannot be bigger than " + boardLimits.maxY
+            addErrorEffects()
+        }        
+        else if (x < boardLimits.minX) {
+            boardErrorElement.innerText = "X cannot be lower than " + boardLimits.minX
+            addErrorEffects()
+        }
+        else if (y < boardLimits.minY) {
+            boardErrorElement.innerText = "Y cannot be lower than " + boardLimits.minY
+            addErrorEffects()
+        }
     }
-    else if (bombDensity >= boardLimits.maxBombDensity) {
+
+    if (bombDensity > boardLimits.maxBombDensity) {
         boardErrorElement.innerText = "bomb density cannot be higher than " + boardLimits.maxBombDensity + "%"
         addErrorEffects()
     }
-    else if (x <= boardLimits.minX) {
-        boardErrorElement.innerText = "X cannot be lower than " + boardLimits.minX
-        addErrorEffects()
-    }
-    else if (y <= boardLimits.minY) {
-        boardErrorElement.innerText = "Y cannot be lower than " + boardLimits.minY
-        addErrorEffects()
-    }
+
     else gameState.boardRulesFollowed = true
 }
 
@@ -204,54 +250,136 @@ function showDifficultyScale() {
 }
 
 function setDifficulty() {
+    // custom rect
     if (difficultySelection.value === "Custom") {
+        document.querySelectorAll(".square").forEach(element => element.classList.remove("hidden"))
+        document.querySelectorAll(".circle").forEach(element => element.classList.add("hidden"))
+
         xElement.disabled = false
         yElement.disabled = false
         bombsElement.disabled = false
         xElement.classList.remove("locked-input")
         yElement.classList.remove("locked-input")
         bombsElement.classList.remove("locked-input")
-        return
+        boardInfo.isCircle = false
     }
+    // custom circle
+    else if (difficultySelection.value === "Circle") {
+        bombsElement.disabled = false
+        bombsElement.classList.remove("locked-input")
 
-    xElement.disabled = true
-    yElement.disabled = true
-    bombsElement.disabled = true
-    xElement.classList.add("locked-input")
-    yElement.classList.add("locked-input")
-    bombsElement.classList.add("locked-input")
+        document.querySelectorAll(".square").forEach(element => element.classList.add("hidden"))
+        document.querySelectorAll(".circle").forEach(element => element.classList.remove("hidden"))
 
-    let selectedDifficulty = difficultyPresets[difficultySelection.value]
-    xElement.value = selectedDifficulty.x
-    yElement.value = selectedDifficulty.y
-    // add cap here
-    bombsElement.value = selectedDifficulty.bombCount
+        boardInfo.isCircle = true
+    }
+    // rect
+    else {
+        document.querySelectorAll(".square").forEach(element => element.classList.remove("hidden"))
+        document.querySelectorAll(".circle").forEach(element => element.classList.add("hidden"))
+
+        boardInfo.isCircle = false
+
+        xElement.disabled = true
+        yElement.disabled = true
+        bombsElement.disabled = true
+        xElement.classList.add("locked-input")
+        yElement.classList.add("locked-input")
+        bombsElement.classList.add("locked-input")
+    
+        let selectedDifficulty = difficultyPresets[difficultySelection.value]
+        xElement.value = selectedDifficulty.x
+        yElement.value = selectedDifficulty.y
+        bombsElement.value = selectedDifficulty.bombCount
+    
+        UpdateBombDensity()
+    }
 
     UpdateBombDensity()
 }
 
-difficultySelection.addEventListener("change", () => setDifficulty())
+difficultySelection.addEventListener("change", () => {
+    setDifficulty()
+})
+
+function checkIfInsideCircle(x, y) {
+    if ((((x - boardInfo.rx) ** 2) / boardInfo.rx ** 2) + (((y - boardInfo.ry) ** 2) / boardInfo.ry ** 2) <= 0.95) return true
+    else return false
+}
+
+// o**
+function getTileCount(shape) {
+    // 0 -> rect
+    // 1 -> circle
+
+    boardInfo.tileCount = 0
+
+    switch (shape) {
+        case 0:
+            for (let x = 0; x < boardInfo.x; x++) {
+                for (let y = 0; y < boardInfo.y; y++) boardInfo.tileCount++
+            }
+
+            break;
+        case 1:
+            for (let x = 0; x < boardInfo.rx * 2; x++) {
+                for (let y = 0; y < boardInfo.ry * 2; y++) {
+                    if (checkIfInsideCircle(x, y)) boardInfo.tileCount++
+                }
+            }
+
+            break;
+    }
+
+    tileCountElement.innerText = `Total Tiles: ${boardInfo.tileCount} Tiles`
+}
 
 function boardLogic() {
     board.innerHTML = ""
-
-    // adds tiles
     const fragment = document.createDocumentFragment()
+    
+    // adding tiles depending on the shape
+    if (boardInfo.isCircle) {
+        for (let x = 0; x < boardInfo.rx * 2; x++) {
+            const row = createCustomElement("div", {
+                id: x,
+                className: "row"
+            })
 
-    for (let x = 0; x < boardInfo.x; x++) {
-        const row = createCustomElement("div", {
-            id: x,
-            className: "row"
-        })
+            for (let y = 0; y < boardInfo.ry * 2; y++) {
+                if (checkIfInsideCircle(x, y)) {
+                    row.appendChild(createCustomElement("div", {
+                        id: `${x}-${y}`,
+                        className: "tile"
+                    }))
 
-        for (let y = 0; y < boardInfo.y; y++) {
-            row.appendChild(createCustomElement("div", {
-                id: `${x}-${y}`,
-                className: "tile"
-            }))
+                    gameState.validTiles.add(`${x}-${y}`)
+                }
+                else row.appendChild(emptyTile.cloneNode(true))
+            }
+
+            fragment.appendChild(row)
         }
+    }
+    // rect
+    else {
+        for (let x = 0; x < boardInfo.x; x++) {
+            const row = createCustomElement("div", {
+                id: x,
+                className: "row"
+            })
 
-        fragment.appendChild(row)
+            for (let y = 0; y < boardInfo.y; y++) {
+                row.appendChild(createCustomElement("div", {
+                    id: `${x}-${y}`,
+                    className: "tile"
+                }))
+
+                gameState.validTiles.add(`${x}-${y}`)
+            }
+
+            fragment.appendChild(row)
+        }
     }
 
     board.appendChild(fragment)
@@ -260,7 +388,9 @@ function boardLogic() {
 function startGame() {
     setBoardInfo()
 
-    checkBoardLimits(boardInfo.x, boardInfo.y, boardInfo.bombDensity)
+    if (boardInfo.isCircle) checkBoardLimits(boardInfo.x, boardInfo.y, boardInfo.bombDensity)
+    else checkBoardLimits(boardInfo.rx, boardInfo.ry, boardInfo.bombDensity)
+
     if (!gameState.boardRulesFollowed) return
 
     boardLogic()
@@ -286,6 +416,7 @@ function resetGameInfo() {
     gameState.finishTime = undefined
     gameState.clickedTiles = 0
     gameState.bombsPositions = []
+    gameState.validTiles.clear()
     gameState.flaggedPosition = []
     gameState.correctFlags = 0
     gameState.falseFlags = 0
@@ -303,33 +434,28 @@ function resetGame() {
 
 // create random bombs
 function addBombs(x, y){
-    const bombPositions = new Set()
-
     const surroundingTiles = getSurroundingTiles(x, y)
+    let validTilesArray = [...gameState.validTiles]
 
+    // remove invalid tiles
+    for (let i = 0; i < surroundingTiles.length; i++) {
+        let removeIndex = validTilesArray.findIndex(element => element === `${surroundingTiles[i][0]}-${surroundingTiles[i][1]}`)
+
+        validTilesArray[removeIndex] = validTilesArray[validTilesArray.length - 1]
+        validTilesArray.pop()
+    }
+
+    // convert set to array for getting random positions
+
+    // add bombs based on available tiles
     while (gameState.bombsPositions.length < boardInfo.bombCount) {
-        const bombX = Math.floor(Math.random() * boardInfo.x)
-        const bombY = Math.floor(Math.random() * boardInfo.y)
+        const randomIndex = Math.floor(Math.random() * validTilesArray.length)
+        const randomBomb = validTilesArray[randomIndex]
 
-        const key = bombX * boardInfo.y + bombY
+        gameState.bombsPositions.push(randomBomb.split("-").map(Number))
 
-        if (bombPositions.has(key)) continue
-        if (x == bombX && y == bombY) continue
-
-        let isSurrounding = false
-
-        for (let i = 0; i < surroundingTiles.length; i++) {
-            if (surroundingTiles[i][0] == bombX &&
-                surroundingTiles[i][1] == bombY) {
-                isSurrounding = true
-                break
-            }
-        }
-
-        if (isSurrounding) continue
-
-        bombPositions.add(key)
-        gameState.bombsPositions.push([bombX, bombY])
+        validTilesArray[randomIndex] = validTilesArray[validTilesArray.length - 1]
+        validTilesArray.pop()
     }
 }
 
@@ -360,7 +486,7 @@ function mark(target) {
 
     revealSurrounding(x, y)
 
-    if (gameState.clickedTiles == (boardInfo.x * boardInfo.y) - boardInfo.bombCount) winMenu()
+    if (gameState.clickedTiles + boardInfo.bombCount == boardInfo.tileCount) winMenu()
 }
 
 // handling flag counter
@@ -461,6 +587,7 @@ function checkForBomb(x, y) {
     return gameState.bombsPositions.some(element => x == element[0] && y == element[1])
 }
 
+// o**
 function revealSurroundingAnimation(x, y) {
     let forCheckPositions = getSurroundingTiles(x, y)
 
@@ -473,6 +600,7 @@ function revealSurroundingAnimation(x, y) {
     }, 40)
 }
 
+// o**
 function revealSurrounding(x, y) {
     let clickedElement = document.getElementById(`${x}-${y}`)
 
@@ -494,12 +622,13 @@ function revealSurrounding(x, y) {
         
         revealSurroundingAnimation(x, y)
     }
+
     else {
         clickedElement.innerText = surroundingBombs
         if (!clickedElement.classList.contains("clicked")) {
             clickedElement.classList.add("clicked")
             gameState.clickedTiles++
-            if (gameState.clickedTiles == (boardInfo.x * boardInfo.y) - boardInfo.bombCount) winMenu()
+            if (gameState.clickedTiles + boardInfo.bombCount == boardInfo.tileCount) winMenu()
         }
     }
 }
@@ -509,15 +638,8 @@ function getSurroundingTiles(x, y) {
 
     for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
-            if (
-                x + dx >= 0 &&
-                x + dx < boardInfo.x &&
-                y + dy >= 0 &&
-                y + dy < boardInfo.y &&
-                !(dx === 0 && dy === 0)
-            ) {
+            if (gameState.validTiles.has(`${x + dx}-${y + dy}`)) 
                 surroundingTiles.push([x + dx, y + dy])
-            }
         }
     }
 
@@ -618,7 +740,6 @@ function removeArrayElement(array, elementToRemove) {
     return array
 }
 
-// this is a little bit weird
 function backToMenu() {
     menu.style.transition = '300ms'
     gameContainer.style.transition = '300ms'
@@ -706,8 +827,15 @@ function resultMenu(winOrLose) {
     time.innerText = `Time: ${String(hour).padStart(2, "0")} : ${String(minute).padStart(2, "0")} : ${String(second).padStart(2, "0")}.${String(millisecond).padStart(3, "0")}`
 
     // tile calculations
-    const boardSize = createCustomElement("div", { className: "result-menu-details" })
-    boardSize.innerText = `Board Size: ${boardInfo.x} x ${boardInfo.y}, Total Tiles: ${boardInfo.x * boardInfo.y} Tiles`
+    let boardSize
+    if (boardInfo.isCircle) {
+        boardSize = createCustomElement("div", { className: "result-menu-details" })
+        boardSize.innerText = `Board Size: ${boardInfo.rx} x ${boardInfo.ry}, Total Tiles: ${boardInfo.tileCount} Tiles`
+    }
+    else {
+        boardSize = createCustomElement("div", { className: "result-menu-details" })
+        boardSize.innerText = `Board Size: ${boardInfo.x} x ${boardInfo.y}, Total Tiles: ${boardInfo.tileCount} Tiles`
+    }
 
     //bomb count and density 
     const bombCountElement = createCustomElement("span", { className: "result-menu-details" })
@@ -741,7 +869,7 @@ function resultMenu(winOrLose) {
     // handling losing parameters
     if (winOrLose == "lose") {
         const completionPercentage = createCustomElement("div", { className: "result-menu-details" })
-        completionPercentage.innerText = "Tiles Checked: " + (Number(gameState.clickedTiles) + Number(gameState.falseFlags) + Number(gameState.correctFlags)) + " Tiles, " + Math.floor(((Number(gameState.clickedTiles) + Number(gameState.falseFlags) + Number(gameState.correctFlags)) / (boardInfo.x * boardInfo.y)) * 10000) / 100 + "%."
+        completionPercentage.innerText = "Tiles Checked: " + (Number(gameState.clickedTiles) + Number(gameState.falseFlags) + Number(gameState.correctFlags)) + " Tiles, " + Math.floor(((Number(gameState.clickedTiles) + Number(gameState.falseFlags) + Number(gameState.correctFlags)) / boardInfo.tileCount) * 10000) / 100 + "%."
 
         const accuracy = createCustomElement("span", { className: "result-menu-details" })
         accuracy.innerText = "Accuracy: " 
@@ -754,14 +882,16 @@ function resultMenu(winOrLose) {
         falseFlags.innerText = gameState.falseFlags + " False Flag(s). "
         falseFlags.style.color = "red"
 
-        const accuracyPercentage = createCustomElement("span")
-        accuracyPercentage.innerText = Math.floor((gameState.correctFlags / (gameState.falseFlags + gameState.correctFlags)) * 10000) / 100 + "% Accuracy."
-
         menu.appendChild(completionPercentage)
         menu.appendChild(accuracy)
         menu.appendChild(correctFlags)
         menu.appendChild(falseFlags)
-        menu.appendChild(accuracyPercentage)
+
+        if (gameState.flaggedPosition.length) {
+            const accuracyPercentage = createCustomElement("span")
+            accuracyPercentage.innerText = Math.floor((gameState.correctFlags / (gameState.falseFlags + gameState.correctFlags)) * 10000) / 100 + "% Accuracy."
+            menu.appendChild(accuracyPercentage)
+        }
     }
 
     menu.appendChild(buttonContainer)
@@ -856,3 +986,5 @@ function updateClock() {
 }
 
 requestAnimationFrame(updateClock)
+
+UpdateBombDensity()

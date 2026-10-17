@@ -33,6 +33,10 @@ button, select, input {
     cursor: pointer;
 }
 
+.hidden {
+    display: none !important;
+}
+
 #menu {
     color: var(--color);
     margin: 0 30vw 10vh 30vw;
@@ -80,6 +84,8 @@ button, select, input {
 #board-error {
     color: red;
     transition: all 300ms;
+    width: 100%;
+    height: 30px;
 }
 
 #error-timer-parent {
@@ -109,6 +115,11 @@ button, select, input {
 .difficulty-text {
     margin-top: 12px;
     margin-bottom: 12px;
+}
+
+#tile-count{
+    font-size: 12px;
+    font-style: italic;
 }
 
 #result-menu {
@@ -269,6 +280,12 @@ button, select, input {
     -webkit-user-select: none; /* Safari */
     -moz-user-select: none; /* Firefox */
     -ms-user-select: none; /* Internet Explorer/Edge */
+}
+
+.empty-tile {
+    width: 35px;
+    height: 35px;
+    margin: 1px;
 }
 
 .row {
